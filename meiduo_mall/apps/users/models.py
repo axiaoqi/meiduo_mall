@@ -25,6 +25,27 @@ from django.contrib.auth.models import AbstractUser
 
 # 我们添加一个手机号，继承重新
 class User(AbstractUser):
+
     mobile = models.CharField(max_length=11, unique=True, verbose_name='手机号')
 
+    class Meta:
+        """
+        修改表名字
+        """
+        db_table = 'tb_user'
+        verbose_name = '用户'
+        verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return self.username
+
+"""
+上门的模型，需要替换一下系统
+settings.py
+# 通过提供一个值给AUTH_USER_MODEL设置，指向自定义的模型，django允许你覆盖默认的user模型
+# AUTH_USER_MODEL = '子应用名.模型类'
+AUTH_USER_MODEL = 'users.User'
+
+运行命令
+python manage.py makemigrations
+"""

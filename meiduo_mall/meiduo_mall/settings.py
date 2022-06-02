@@ -195,3 +195,8 @@ LOGGING = {
         },
     }
 }
+
+
+# 通过提供一个值给AUTH_USER_MODEL设置，指向自定义的模型，django允许你覆盖默认的user模型
+# AUTH_USER_MODEL = '子应用名.模型类'
+AUTH_USER_MODEL = 'users.User'
