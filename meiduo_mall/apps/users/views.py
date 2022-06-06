@@ -1,6 +1,9 @@
+from django import http
 from django.shortcuts import render
 from django.views import View
+import re
 # Create your views here.
+from apps.users.models import User
 
 
 class RegisterView(View):
@@ -30,7 +33,53 @@ class RegisterView(View):
     def post(self, request):
         """
         1.接受前段提交的用户名，密码，手机号
-        2.入库，这里需要有模型
-        3.返回值
+        data = request.POST
+        username = data.get('username')
+        password = data.get('password')
+        password2 = data.get('password2')
+        mobile = data.get('mobile')
+        2.数据的验证，作为后端开发者，不相信前端提交的任何数据
+            2.1 验证必传的数据是否有值
+
+            2.2 判断用户名是否符合规则
+            2.3 判断密码 是否符合规则
+            2.4 判断确认密码是否和密码一致
+            2.5判断手机号是否符合规则
+        3.数据没有问题，入库，这里需要有模型
+        4.返回值
         """
-        pass
+
+        # 1.接受前段提交的用户名，密码，手机号
+        data = request.POST
+        username = data.get('username')
+        password = data.get('password')
+        password2 = data.get('password2')
+        mobile = data.get('mobile')
+        # 2.1 验证必传的数据是否有值
+        # all([el, el, el]) el必徐有值，只要有一个为None，则为False
+        if not all([username, password, password2, mobile]):
+            return http.HttpResponseBadRequest('参数有问题')
+        # 2.2 判断用户名是否符合规则，正则表达式
+        if not re.match(r'[0-9a-zA-Z_]{5,20}', username):
+            return http.HttpResponseBadRequest('用户名不合法')
+            # 2.3 判断密码 是否符合规则
+        if not re.match(r'[0-9a-zA-Z_]{5,20}', password):
+            return http.HttpResponseBadRequest('密码不合法')
+
+        # 2.4 判断确认密码是否和密码一致
+        if password2 != password:
+            return http.HttpResponseBadRequest('密码不一致')
+
+        # 2.5判断手机号是否符合规则
+        if not re.match(r'1[3-9]\d{9}', mobile):
+            return http.HttpResponseBadRequest('手机号不符合规则')
+
+        # 3.数据没有问题，入库，这里需要有模型
+        user = User.objects.create_user(username=username, password=password, mobile=mobile)
+
+        # 返回成功
+        return http.HttpResponse('注册成功')
+
+
+
+
