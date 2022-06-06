@@ -66,6 +66,23 @@ var vm = new Vue({
                 this.error_name = true;
             }
 
+        // 在这里发送axios请求
+        // 1.组织url
+            let url = '/username/'+this.username+'/count';
+        // 2.发送请求
+            axios.get(url).then(response=>{
+                // console.log(response)
+                if(response.data.count == 0){
+                    this.error_name=false
+                }else{
+                    this.error_name=true
+                    this.error_name_message='用户名已注册'
+                }
+            }).catch(error=>{
+
+            })
+        // 3.请求成功的回调的业务逻辑
+
 
         },
         // 检查密码
