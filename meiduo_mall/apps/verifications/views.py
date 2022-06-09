@@ -127,15 +127,43 @@ class SmsCodeView(View):
         if redis_code.decode().lower() != image_code.lower():
             return http.JsonResponse({'code': RETCODE.SMSCODERR, 'errmsg': '短信验证码错误'})
 
+
+        # 防止乱发短信
+        # 这里需要判断标记是否是1
+        send_flag = redis_conn.get('send_flag_%s' % mobile)
+        if send_flag:
+            return http.JsonResponse({'code': RETCODE.SMSCODERR, 'errmsg': '操作太频繁'})
+
+
         # 生成一个随机短信码
         from random import randint
         sms_code = '%06d' % randint(0, 999999)  # '%06d' % 用0补齐 ，也可直接10000， 999999
 
+        # 性能优化
+        # # ①创建管道
+        # pipe = redis_conn.pipeline()
+        # # ② 执行
+        # pipe.setex('sms_%s' % mobile, SMS_CODE_EXPIRE_TIME, sms_code)
+        # pipe.setex('send_flag_%s' % mobile, 60, 1)
+        # # ③ 让管道执行
+        # pipe.execute()
+
+
         # 把短信验证码保存起来，redis， redis mobile: value
         redis_conn.setex('sms_%s'%mobile, SMS_CODE_EXPIRE_TIME, sms_code)
 
+
+        # redis里面添加标记，避免重复发送,60s有效
+        redis_conn.setex('send_flag_%s' % mobile, 60, 1)
+
+
         # 发送短息
-        send_message('1', mobile, (sms_code, SMS_CODE_EXPIRE_TIME/60))
+        # send_message('1', mobile, (sms_code, SMS_CODE_EXPIRE_TIME/60))
+        # 我们的函数需要通过delay调用，才能添加到broker（队列中）
+        from celery_tasks.sms.tasks import send_sms_code
+        # send_sms_code的参数平移到delay中
+        send_sms_code.delay(mobile, sms_code)
+
 
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'ok'})
 

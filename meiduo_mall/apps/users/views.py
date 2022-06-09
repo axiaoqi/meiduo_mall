@@ -1,4 +1,5 @@
 from django import http
+from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views import View
@@ -167,3 +168,85 @@ class UsernameCountView(View):
             return http.JsonResponse({'code': 400, 'errmsg': '数据库异常'})
         # 3 返回响应
         return http.JsonResponse({'code': 0, 'count': count})
+
+
+"""
+1.前端：把用户名和密码填写完成之后，发送给后端
+后端： 验证用户名密码
+
+2.大体思路
+    a.后端接收数据
+    b.验证数据
+    c.如果验证成功则登录，验证不成功则登录失败
+
+3.纯后端
+    a.后端接收数据（username, password）
+    b.判断参数是否齐全
+    c.判断用户名是否符合规则
+    d.判断密码是否符合规则
+    e.用户名密码都没有问题，去验证用户名密码
+    f如果成功则登录，状态保持
+    g，登录不成功，则提示用户名或密码错误
+    
+4.请求方式和路由
+     POST    login/
+"""
+
+class LoginView(View):
+
+    def get(self, request):
+
+        return render(request, 'login.html')
+
+    def post(self, request):
+
+        # 1.接收数据
+        data = request.POST
+        username = data.get('username')
+        password = data.get('password')
+        remembered = data.get('remembered')
+        # 验证数据是否缺失
+        if not all([username, password]):
+            return http.HttpResponseBadRequest('缺少必须参数')
+
+        # 判断用户名是否符合规则
+        if not re.match(r'[0-9a-zA-Z_]{5,20}',username):
+            return http.HttpResponseBadRequest('用户名不合法')
+
+        # 判断密码是否符合规则
+        if not re.match(r'[0-9a-zA-Z_]{8,20}', password):
+            return http.HttpResponseBadRequest('密码不合法')
+
+        """
+                # 5.验证用户名和密码
+        # 验证有2种方式
+        # ① 使用django的认证后端
+        # ② 我们可以自己查询数据库( 根据用户名/手机号查询对应的user用户,再比对密码)
+
+        from django.contrib.auth import authenticate
+        # 默认的认证后端是调用了 from django.contrib.auth.backends import ModelBackend
+        # ModelBackend 中的认证方法
+        # def authenticate(self, request, username=None, password=None, **kwargs):
+
+        # 如果用户名和密码正确,则返回user
+        # 否则返回None
+        """
+        user = authenticate(uaername=username, password=password)
+
+        if user is not None:
+            # 登录
+            login(request, user)
+
+            # 状态保持
+            if remembered == 'on':
+                # request.session.set_expiry(seconds)
+                request.session.set_expiry(30*24*2600)  # 30天
+            else:
+                request.session.set_expiry(0)  # 关闭就断开
+
+            # 跳转到首页
+            return redirect(reverse('contents:index'))
+        else:
+            # 验证不成功，提示账号密码错误
+            return render(request, 'login.html', context={'account_errmsg': '用户名或密码错误'})
+
